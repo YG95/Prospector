@@ -323,6 +323,8 @@ MonoBehaviour:
   scoreRun: 0
   score: 0
   fsRun: {fileID: 0}
+  GTGameOver: {fileID: 0}
+  GTRoundResult: {fileID: 0}
 --- !u!114 &827460516
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -585,7 +587,7 @@ GameObject:
   - 4: {fileID: 1592977215}
   - 132: {fileID: 1592977214}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: HighScore
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
