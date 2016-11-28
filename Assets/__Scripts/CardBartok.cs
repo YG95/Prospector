@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-
 // CBState includes both states for the game and to___ states for movement
 public enum CBState {
 	drawpile,
@@ -16,20 +15,30 @@ public enum CBState {
 
 // CardBartok extends Card just as CardProspector did.
 public class CardBartok : Card {
-
 	// These static fields are used to set values that will be the same
 	// for all instances of CardBartok
 	static public float MOVE_DURATION = 0.5f;
 	static public string MOVE_EASING = Easing.InOut;
 	static public float CARD_HEIGHT = 3.5f;
 	static public float CARD_WIDTH = 2f;
+
 	public CBState state = CBState.drawpile;
+
 	// Fields to store info the card will use to move and rotate
 	public List<Vector3> bezierPts;
 	public List<Quaternion> bezierRots;
 	public float timeStart, timeDuration; // declares 2 fields
+
+	public int eventualSortOrder;
+	public string eventualSortLayer;
+
 	// When the card is done moving, it will call reportFinishTo.SendMessage()
 	public GameObject reportFinishTo = null;
+	public Player callbackPlayer = null;
+	void Awake() {
+		callbackPlayer = null; // Just to be sure.
+	}
+
 	// MoveTo tells the card to interpolate to a new position and rotation
 	public void MoveTo(Vector3 ePos, Quaternion eRot) {
 		// Make new interpolation lists for the card.
@@ -48,6 +57,7 @@ public class CardBartok : Card {
 		}
 		// timeDuration always starts the same but can be altered later
 		timeDuration = MOVE_DURATION;
+
 		// Setting state to either toHand or toTarget will be handled by the
 		// calling method
 		state = CBState.to;
@@ -56,6 +66,7 @@ public class CardBartok : Card {
 	public void MoveTo(Vector3 ePos) {
 		MoveTo(ePos, Quaternion.identity);
 	}
+
 	void Update() {
 		switch (state) {
 		// All the to___ states are ones where the card is interpolating
@@ -65,6 +76,7 @@ public class CardBartok : Card {
 			// Get u from the current time and duration
 			// u ranges from 0 to 1 (usually)
 			float u = (Time.time - timeStart)/timeDuration;
+
 			// Use Easing class from Utils to curve the u value
 			float uC = Easing.Ease (u, MOVE_EASING);
 			if (u<0) { // If u<0, then we shouldn't move yet.
@@ -91,6 +103,11 @@ public class CardBartok : Card {
 					// to null so that it the card doesn't continue to report
 					// to the same GameObject every subsequent time it moves.
 					reportFinishTo = null;
+				} else if (callbackPlayer != null) {
+					// If there's a callback Player
+					// then call CBCallback directly on the Player
+					callbackPlayer.CBCallback(this);
+					callbackPlayer = null;
 				} else { // If there is nothing to callback
 					// Do nothing
 				}
@@ -100,8 +117,25 @@ public class CardBartok : Card {
 				transform.localPosition = pos;
 				Quaternion rotQ = Utils.Bezier(uC, bezierRots);
 				transform.rotation = rotQ;
+
+				if (u>0.5f && spriteRenderers[0].sortingOrder != eventualSortOrder) {
+					// Jump to the proper sort order
+					SetSortOrder(eventualSortOrder);
+				}
+				if (u>0.75f && spriteRenderers[0].sortingLayerName != eventualSortLayer) {
+					// Jump to the proper sort layer
+					SetSortingLayerName(eventualSortLayer);
+				}
 			}
 			break;
 		}
+	}
+
+	// This allows the card to react to being clicked
+	override public void OnMouseUpAsButton() {
+		// Call the CardClicked method on the Bartok singleton
+		Bartok.S.CardClicked(this);
+		// Also call the base class (Card.cs) version of this method
+		base.OnMouseUpAsButton();
 	}
 }
